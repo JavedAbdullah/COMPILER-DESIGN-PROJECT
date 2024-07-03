@@ -1,0 +1,3 @@
+/home/abdu/Scrivania/S.O/untitled/cmake-build-debug/CMakeFiles/untitled.dir
+/home/abdu/Scrivania/S.O/untitled/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/abdu/Scrivania/S.O/untitled/cmake-build-debug/CMakeFiles/rebuild_cache.dir
