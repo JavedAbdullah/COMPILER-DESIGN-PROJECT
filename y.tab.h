@@ -66,7 +66,9 @@ extern int yydebug;
     LPAR = 267,                    /* LPAR  */
     RPAR = 268,                    /* RPAR  */
     LEN = 269,                     /* LEN  */
-    QUIT = 270                     /* QUIT  */
+    QUIT = 270,                    /* QUIT  */
+    PLUS = 271,                    /* PLUS  */
+    ASSIGN = 272                   /* ASSIGN  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -88,6 +90,8 @@ extern int yydebug;
 #define RPAR 268
 #define LEN 269
 #define QUIT 270
+#define PLUS 271
+#define ASSIGN 272
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED

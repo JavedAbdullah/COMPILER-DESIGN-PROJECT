@@ -75,52 +75,63 @@
 #include <math.h>
 
 #define MAX_POINTS 100
+#define MAX_VARS 100
 
 typedef struct {
     double x, y;
 } Point;
 
-Point points[MAX_POINTS];
-int point_count = 0;
+typedef struct {
+    Point points[MAX_POINTS];
+    int point_count;
+} Polyline;
+
+Polyline polylines[MAX_VARS];
+int var_names[MAX_VARS];
+int var_count = 0;
+
+Polyline current_polyline;
+
+
+//memset(var_names, null, sizeof(var_names));
 
 void add_point(double x, double y) {
-    if (point_count < MAX_POINTS) {
-        points[point_count].x = x;
-        points[point_count].y = y;
-        point_count++;
+    if (current_polyline.point_count < MAX_POINTS) {
+        current_polyline.points[current_polyline.point_count].x = x;
+        current_polyline.points[current_polyline.point_count].y = y;
+        current_polyline.point_count++;
     } else {
         printf("Too many points\n");
     }
 }
 
-double calculate_length() {
+double calculate_length(Polyline polyline) {
+
     double length = 0.0;
-    for (int i = 0; i < point_count - 1; i++) {
-        double dx = points[i+1].x - points[i].x;
-        double dy = points[i+1].y - points[i].y;
+    for (int i = 0; i < polyline.point_count - 1; i++) {
+        double dx = polyline.points[i+1].x - polyline.points[i].x;
+        double dy = polyline.points[i+1].y - polyline.points[i].y;
         length += sqrt(dx * dx + dy * dy);
     }
     return length;
 }
-int is_open(){
-	if( point_count == 1){
-		return 1;
-	}
-    double init_x = points[0].x;
-    double init_y = points[0].y;
-     for (int i = 1; i < point_count ; i++) {
-            if( points[i].x == init_x && points[i].y == init_y){
-                //printf("FALSO! polylinea chiusa\n");
-                return 1;
-            }
-       }
-      //printf("VERO! polylinea aperta\n");
-       return 0;
-
+int is_open(Polyline polyline) {
+    if (polyline.point_count == 1) {
+        return 1;
+    }
+    double init_x = polyline.points[0].x;
+    double init_y = polyline.points[0].y;
+    for (int i = 1; i < polyline.point_count; i++) {
+        if (polyline.points[i].x == init_x && polyline.points[i].y == init_y) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
-void tell_if_open(){
-        if(is_open() == 0){
+
+void tell_if_open(Polyline polyline){
+        if(is_open(polyline) == 0){
            printf("VERO! polylinea aperta\n");
         }else{
             printf("FALSO! polylinea chiusa\n");
@@ -128,23 +139,73 @@ void tell_if_open(){
 
 }
 
-void close(){
-	if( point_count == 1){
+void close(Polyline polyline){
+	if( polyline.point_count  == 1){
 		printf("polylinea gia' chiusa\n");
 	}
-    double init_x = points[0].x;
-    double init_y = points[0].y;
+    double init_x = polyline.points[0].x;
+    double init_y = polyline.points[0].y;
 
     add_point(init_x, init_y );
-    printf("new length: %f\n",calculate_length() );
+    printf("new length: %f\n",calculate_length(polyline) );
 
+}
+
+
+Polyline* find_polyline(int var_name) {
+
+    for (int i = 0; i < var_count; i++) {
+	//printf("variabile salvata = %s\n", var_names[i]);
+
+	if(var_names[i] == var_name) {
+		return &polylines[i];
+	}
+
+
+        printf("errivo qui\n");
+    }
+    return NULL;
+}
+
+Polyline find_polyline_for_open(int var_name) {
+	Polyline pol;
+    for (int i = 0; i < var_count; i++) {
+	//printf("variabile salvata = %s\n", var_names[i]);
+
+	if(var_names[i] == var_name) {
+		return polylines[i];
+	}
+
+
+        printf("errivo qui\n");
+    }
+    return pol;
+}
+
+void save_polyline(int var_name) {
+    Polyline* existing_polyline = find_polyline(var_name);
+
+    if (existing_polyline) {
+        *existing_polyline = current_polyline;
+    } else {
+
+        if (var_count < MAX_VARS) {
+            var_names[var_count] = var_name;
+            printf("var_name = %i\n", var_names[var_count]);
+            polylines[var_count] = current_polyline;
+            current_polyline.point_count = 0;
+            var_count++;
+        } else {
+            printf("Too many variables\n");
+        }
+    }
 }
 
 
 
 
 
-#line 148 "y.tab.c"
+#line 209 "y.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -200,7 +261,9 @@ extern int yydebug;
     LPAR = 267,                    /* LPAR  */
     RPAR = 268,                    /* RPAR  */
     LEN = 269,                     /* LEN  */
-    QUIT = 270                     /* QUIT  */
+    QUIT = 270,                    /* QUIT  */
+    PLUS = 271,                    /* PLUS  */
+    ASSIGN = 272                   /* ASSIGN  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -222,6 +285,8 @@ extern int yydebug;
 #define RPAR 268
 #define LEN 269
 #define QUIT 270
+#define PLUS 271
+#define ASSIGN 272
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
@@ -258,18 +323,25 @@ enum yysymbol_kind_t
   YYSYMBOL_RPAR = 13,                      /* RPAR  */
   YYSYMBOL_LEN = 14,                       /* LEN  */
   YYSYMBOL_QUIT = 15,                      /* QUIT  */
-  YYSYMBOL_16_ = 16,                       /* '-'  */
-  YYSYMBOL_17_ = 17,                       /* '('  */
-  YYSYMBOL_18_ = 18,                       /* ')'  */
-  YYSYMBOL_YYACCEPT = 19,                  /* $accept  */
-  YYSYMBOL_commands = 20,                  /* commands  */
-  YYSYMBOL_command = 21,                   /* command  */
-  YYSYMBOL_polyline = 22,                  /* polyline  */
-  YYSYMBOL_points = 23,                    /* points  */
-  YYSYMBOL_point = 24,                     /* point  */
-  YYSYMBOL_sym_point = 25,                 /* sym_point  */
-  YYSYMBOL_isOpen_command = 26,            /* isOpen_command  */
-  YYSYMBOL_close_command = 27              /* close_command  */
+  YYSYMBOL_PLUS = 16,                      /* PLUS  */
+  YYSYMBOL_ASSIGN = 17,                    /* ASSIGN  */
+  YYSYMBOL_18_ = 18,                       /* '-'  */
+  YYSYMBOL_19_ = 19,                       /* '('  */
+  YYSYMBOL_20_ = 20,                       /* ')'  */
+  YYSYMBOL_YYACCEPT = 21,                  /* $accept  */
+  YYSYMBOL_commands = 22,                  /* commands  */
+  YYSYMBOL_command = 23,                   /* command  */
+  YYSYMBOL_assignment = 24,                /* assignment  */
+  YYSYMBOL_length_command = 25,            /* length_command  */
+  YYSYMBOL_open_command = 26,              /* open_command  */
+  YYSYMBOL_close_var_command = 27,         /* close_var_command  */
+  YYSYMBOL_concat_command = 28,            /* concat_command  */
+  YYSYMBOL_polyline = 29,                  /* polyline  */
+  YYSYMBOL_points = 30,                    /* points  */
+  YYSYMBOL_point = 31,                     /* point  */
+  YYSYMBOL_sym_point = 32,                 /* sym_point  */
+  YYSYMBOL_isOpen_command = 33,            /* isOpen_command  */
+  YYSYMBOL_close_command = 34              /* close_command  */
 };
 typedef enum yysymbol_kind_t yysymbol_kind_t;
 
@@ -597,19 +669,19 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  2
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   44
+#define YYLAST   81
 
 /* YYNTOKENS -- Number of terminals.  */
-#define YYNTOKENS  19
+#define YYNTOKENS  21
 /* YYNNTS -- Number of nonterminals.  */
-#define YYNNTS  9
+#define YYNNTS  14
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  19
+#define YYNRULES  30
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  44
+#define YYNSTATES  62
 
 /* YYMAXUTOK -- Last valid token kind.  */
-#define YYMAXUTOK   270
+#define YYMAXUTOK   272
 
 
 /* YYTRANSLATE(TOKEN-NUM) -- Symbol number corresponding to TOKEN-NUM
@@ -627,7 +699,7 @@ static const yytype_int8 yytranslate[] =
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-      17,    18,     2,     2,     2,    16,     2,     2,     2,     2,
+      19,    20,     2,     2,     2,    18,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
@@ -650,15 +722,17 @@ static const yytype_int8 yytranslate[] =
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     1,     2,     3,     4,
        5,     6,     7,     8,     9,    10,    11,    12,    13,    14,
-      15
+      15,    16,    17
 };
 
 #if YYDEBUG
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
-static const yytype_int8 yyrline[] =
+static const yytype_uint8 yyrline[] =
 {
-       0,    83,    83,    84,    88,    89,    90,    91,    92,    96,
-      97,   101,   102,   106,   107,   111,   112,   113,   118,   122
+       0,   144,   144,   145,   149,   150,   151,   152,   153,   154,
+     155,   156,   157,   158,   159,   163,   167,   171,   175,   179,
+     183,   184,   188,   189,   193,   194,   198,   199,   200,   205,
+     209
 };
 #endif
 
@@ -676,9 +750,10 @@ static const char *const yytname[] =
 {
   "\"end of file\"", "error", "\"invalid token\"", "NUMBER", "SIM0",
   "SIMX", "SIMY", "ISOPEN", "CLOSE", "VARIABLE", "EOL", "SEMICOLON",
-  "LPAR", "RPAR", "LEN", "QUIT", "'-'", "'('", "')'", "$accept",
-  "commands", "command", "polyline", "points", "point", "sym_point",
-  "isOpen_command", "close_command", YY_NULLPTR
+  "LPAR", "RPAR", "LEN", "QUIT", "PLUS", "ASSIGN", "'-'", "'('", "')'",
+  "$accept", "commands", "command", "assignment", "length_command",
+  "open_command", "close_var_command", "concat_command", "polyline",
+  "points", "point", "sym_point", "isOpen_command", "close_command", YY_NULLPTR
 };
 
 static const char *
@@ -688,12 +763,12 @@ yysymbol_name (yysymbol_kind_t yysymbol)
 }
 #endif
 
-#define YYPACT_NINF (-15)
+#define YYPACT_NINF (-20)
 
 #define yypact_value_is_default(Yyn) \
   ((Yyn) == YYPACT_NINF)
 
-#define YYTABLE_NINF (-1)
+#define YYTABLE_NINF (-24)
 
 #define yytable_value_is_error(Yyn) \
   0
@@ -702,11 +777,13 @@ yysymbol_name (yysymbol_kind_t yysymbol)
    STATE-NUM.  */
 static const yytype_int8 yypact[] =
 {
-     -15,     9,   -15,   -15,   -14,   -12,    10,    28,    28,   -15,
-     -15,     1,    16,     0,   -15,    19,    19,    25,    26,    19,
-      19,    19,   -15,   -15,   -15,   -15,   -15,    19,   -15,   -15,
-     -15,    19,    19,    19,   -15,    28,    28,    28,    20,    21,
-      22,   -15,   -15,   -15
+     -20,    47,   -20,   -20,   -16,    -6,    -5,     6,    13,     4,
+     -20,   -20,    26,    20,    21,    27,    29,    31,    32,    38,
+     -20,     2,     2,    46,    48,     2,     2,     2,   -20,   -20,
+     -20,   -20,    30,   -20,   -20,   -20,   -20,   -20,   -20,   -20,
+     -20,     2,   -20,   -20,   -20,     2,     2,     2,    25,   -20,
+     -20,    63,    63,    63,    28,    40,    43,    44,   -20,   -20,
+     -20,   -20
 };
 
 /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -714,23 +791,27 @@ static const yytype_int8 yypact[] =
    means the default is an error.  */
 static const yytype_int8 yydefact[] =
 {
-       3,    12,     1,    13,     0,     0,     0,    12,    12,     7,
-       8,     0,     0,     0,     9,     0,    12,     0,     0,     0,
-       0,     0,    18,    19,    14,     2,     4,    12,    10,     5,
-       6,     0,     0,     0,    11,    12,    12,    12,     0,     0,
-       0,    17,    15,    16
+       3,    14,     1,    24,     0,     0,     0,    23,    23,    16,
+       7,     8,     0,     0,     0,     0,     0,     0,     0,     0,
+      20,     0,    23,     0,     0,     0,     0,     0,    17,    29,
+      18,    30,    23,    25,     2,     9,    10,    11,    12,    13,
+       4,    23,    21,     5,     6,     0,     0,     0,     0,    15,
+      22,    23,    23,    23,     0,     0,     0,     0,    19,    28,
+      26,    27
 };
 
 /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
-     -15,   -15,   -15,    -7,    -6,   -13,   -15,   -15,   -15
+     -20,   -20,   -20,   -20,   -20,   -20,   -20,   -20,    -7,   -18,
+     -19,   -20,   -20,   -20
 };
 
 /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int8 yydefgoto[] =
 {
-       0,     1,    12,    13,    14,    15,    16,    17,    18
+       0,     1,    13,    14,    15,    16,    17,    18,    19,    20,
+      21,    22,    23,    24
 };
 
 /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
@@ -738,45 +819,59 @@ static const yytype_int8 yydefgoto[] =
    number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_int8 yytable[] =
 {
-      22,    23,    27,    19,    24,    20,    31,    32,    33,     2,
-      28,    26,     3,     4,     5,     6,     7,     8,    35,    36,
-      37,    34,     3,     9,    10,    11,    25,    21,    38,    39,
-      40,     3,     4,     5,     6,    11,    29,    30,    41,    42,
-      43,     0,     0,     0,    11
+      29,    31,    41,    25,    42,     3,    45,    46,    47,     3,
+       4,     5,     6,    26,    27,    28,     3,     4,     5,     6,
+      12,    32,    30,    50,    12,    49,    51,    52,    53,    33,
+      34,    12,    35,     3,     4,     5,     6,    58,    36,    48,
+      37,    54,    38,    39,    55,    56,    57,     2,    12,    40,
+       3,     4,     5,     6,     7,     8,     9,    43,   -23,    44,
+      59,    10,    11,    60,    61,    12,     3,     4,     5,     6,
+       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+       0,    12
 };
 
 static const yytype_int8 yycheck[] =
 {
-       7,     8,    15,    17,     3,    17,    19,    20,    21,     0,
-      16,    11,     3,     4,     5,     6,     7,     8,    31,    32,
-      33,    27,     3,    14,    15,    16,    10,    17,    35,    36,
-      37,     3,     4,     5,     6,    16,    11,    11,    18,    18,
-      18,    -1,    -1,    -1,    16
+       7,     8,    21,    19,    22,     3,    25,    26,    27,     3,
+       4,     5,     6,    19,    19,     9,     3,     4,     5,     6,
+      18,    17,     9,    41,    18,    32,    45,    46,    47,     3,
+      10,    18,    11,     3,     4,     5,     6,     9,    11,     9,
+      11,    16,    11,    11,    51,    52,    53,     0,    18,    11,
+       3,     4,     5,     6,     7,     8,     9,    11,    11,    11,
+      20,    14,    15,    20,    20,    18,     3,     4,     5,     6,
+      -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,
+      -1,    18
 };
 
 /* YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
    state STATE-NUM.  */
 static const yytype_int8 yystos[] =
 {
-       0,    20,     0,     3,     4,     5,     6,     7,     8,    14,
-      15,    16,    21,    22,    23,    24,    25,    26,    27,    17,
-      17,    17,    22,    22,     3,    10,    11,    24,    23,    11,
-      11,    24,    24,    24,    23,    24,    24,    24,    22,    22,
-      22,    18,    18,    18
+       0,    22,     0,     3,     4,     5,     6,     7,     8,     9,
+      14,    15,    18,    23,    24,    25,    26,    27,    28,    29,
+      30,    31,    32,    33,    34,    19,    19,    19,     9,    29,
+       9,    29,    17,     3,    10,    11,    11,    11,    11,    11,
+      11,    31,    30,    11,    11,    31,    31,    31,     9,    29,
+      30,    31,    31,    31,    16,    29,    29,    29,     9,    20,
+      20,    20
 };
 
 /* YYR1[RULE-NUM] -- Symbol kind of the left-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr1[] =
 {
-       0,    19,    20,    20,    21,    21,    21,    21,    21,    22,
-      22,    23,    23,    24,    24,    25,    25,    25,    26,    27
+       0,    21,    22,    22,    23,    23,    23,    23,    23,    23,
+      23,    23,    23,    23,    23,    24,    25,    26,    27,    28,
+      29,    29,    30,    30,    31,    31,    32,    32,    32,    33,
+      34
 };
 
 /* YYR2[RULE-NUM] -- Number of symbols on the right-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr2[] =
 {
-       0,     2,     3,     0,     2,     2,     2,     1,     1,     1,
-       2,     3,     0,     1,     2,     6,     6,     6,     2,     2
+       0,     2,     3,     0,     2,     2,     2,     1,     1,     2,
+       2,     2,     2,     2,     0,     3,     1,     2,     2,     5,
+       1,     2,     3,     0,     1,     2,     6,     6,     6,     2,
+       2
 };
 
 
@@ -1240,85 +1335,115 @@ yyreduce:
   switch (yyn)
     {
   case 4: /* command: polyline SEMICOLON  */
-#line 88 "polyline.y"
-                       { printf("Length: %f\n", calculate_length()); }
-#line 1246 "y.tab.c"
+#line 149 "polyline.y"
+                       { printf("Length: %f\n", calculate_length(current_polyline)); }
+#line 1341 "y.tab.c"
     break;
 
   case 5: /* command: isOpen_command SEMICOLON  */
-#line 89 "polyline.y"
+#line 150 "polyline.y"
                                { /* ... */ }
-#line 1252 "y.tab.c"
+#line 1347 "y.tab.c"
     break;
 
   case 6: /* command: close_command SEMICOLON  */
-#line 90 "polyline.y"
+#line 151 "polyline.y"
                               { /*...  */ }
-#line 1258 "y.tab.c"
+#line 1353 "y.tab.c"
     break;
 
   case 7: /* command: LEN  */
-#line 91 "polyline.y"
-          { printf("Length: %f\n", calculate_length()); tell_if_open();}
-#line 1264 "y.tab.c"
+#line 152 "polyline.y"
+          { printf("Length: %f\n", calculate_length(current_polyline)); tell_if_open(current_polyline);}
+#line 1359 "y.tab.c"
     break;
 
   case 8: /* command: QUIT  */
-#line 92 "polyline.y"
+#line 153 "polyline.y"
            {exit(0);}
-#line 1270 "y.tab.c"
+#line 1365 "y.tab.c"
     break;
 
-  case 11: /* points: point point points  */
-#line 101 "polyline.y"
+  case 15: /* assignment: VARIABLE ASSIGN polyline  */
+#line 163 "polyline.y"
+                             { save_polyline(yyvsp[-2]); }
+#line 1371 "y.tab.c"
+    break;
+
+  case 16: /* length_command: VARIABLE  */
+#line 167 "polyline.y"
+             { Polyline* p = find_polyline(yyvsp[0]); if (p != NULL) { printf("Length: %f\n", calculate_length(*p)); } else { printf("Variable not found\n"); } }
+#line 1377 "y.tab.c"
+    break;
+
+  case 17: /* open_command: ISOPEN VARIABLE  */
+#line 171 "polyline.y"
+                    { tell_if_open(find_polyline_for_open(yyvsp[0])); }
+#line 1383 "y.tab.c"
+    break;
+
+  case 18: /* close_var_command: CLOSE VARIABLE  */
+#line 175 "polyline.y"
+                   { }
+#line 1389 "y.tab.c"
+    break;
+
+  case 19: /* concat_command: VARIABLE ASSIGN VARIABLE PLUS VARIABLE  */
+#line 179 "polyline.y"
+                                           { }
+#line 1395 "y.tab.c"
+    break;
+
+  case 22: /* points: point point points  */
+#line 188 "polyline.y"
                        { add_point(yyvsp[-2], yyvsp[-1]); }
-#line 1276 "y.tab.c"
+#line 1401 "y.tab.c"
     break;
 
-  case 13: /* point: NUMBER  */
-#line 106 "polyline.y"
+  case 24: /* point: NUMBER  */
+#line 193 "polyline.y"
            { yyval = yyvsp[0]; }
-#line 1282 "y.tab.c"
+#line 1407 "y.tab.c"
     break;
 
-  case 14: /* point: '-' NUMBER  */
-#line 107 "polyline.y"
+  case 25: /* point: '-' NUMBER  */
+#line 194 "polyline.y"
                  { yyval = -yyvsp[0]; }
-#line 1288 "y.tab.c"
+#line 1413 "y.tab.c"
     break;
 
-  case 15: /* sym_point: SIMX '(' point point polyline ')'  */
-#line 111 "polyline.y"
+  case 26: /* sym_point: SIMX '(' point point polyline ')'  */
+#line 198 "polyline.y"
                                           { add_point(yyvsp[-3], -yyvsp[-2]); }
-#line 1294 "y.tab.c"
+#line 1419 "y.tab.c"
     break;
 
-  case 16: /* sym_point: SIMY '(' point point polyline ')'  */
-#line 112 "polyline.y"
+  case 27: /* sym_point: SIMY '(' point point polyline ')'  */
+#line 199 "polyline.y"
                                             { add_point(-yyvsp[-3], yyvsp[-2]);}
-#line 1300 "y.tab.c"
+#line 1425 "y.tab.c"
     break;
 
-  case 17: /* sym_point: SIM0 '(' point point polyline ')'  */
-#line 113 "polyline.y"
+  case 28: /* sym_point: SIM0 '(' point point polyline ')'  */
+#line 200 "polyline.y"
                                             { add_point(-yyvsp[-3], -yyvsp[-2]); }
-#line 1306 "y.tab.c"
+#line 1431 "y.tab.c"
     break;
 
-  case 18: /* isOpen_command: ISOPEN polyline  */
-#line 118 "polyline.y"
-                    { tell_if_open(); }
-#line 1312 "y.tab.c"
+  case 29: /* isOpen_command: ISOPEN polyline  */
+#line 205 "polyline.y"
+                    { tell_if_open(current_polyline); }
+#line 1437 "y.tab.c"
     break;
 
-  case 19: /* close_command: CLOSE polyline  */
-#line 122 "polyline.y"
-                   { if(is_open() == 0){close(); }else{printf("gia chiuso!\n");}}
-#line 1318 "y.tab.c"
+  case 30: /* close_command: CLOSE polyline  */
+#line 209 "polyline.y"
+                   { if(is_open(current_polyline) == 0){close(current_polyline); }else{printf("gia chiuso!\n");}}
+#line 1443 "y.tab.c"
     break;
 
 
-#line 1322 "y.tab.c"
+#line 1447 "y.tab.c"
 
       default: break;
     }
@@ -1511,10 +1636,13 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 125 "polyline.y"
+#line 212 "polyline.y"
 
 
 int main() {
+// for (int i = 0; i < MAX_VARS; i++) {
+//        var_names[i] = -1;
+//    }
     yyparse();
     return 0;
 }
