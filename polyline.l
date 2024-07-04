@@ -11,6 +11,7 @@ simy            { return SIMY; }
 isOpen          { return ISOPEN; }
 close           { return CLOSE; }
 len             {return LEN;}
+q               {return QUIT;}
 [ \t]+      { /* skip whitespace */ }
 \n          { return EOL; }
 ";"         { return SEMICOLON; }

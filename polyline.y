@@ -32,21 +32,36 @@ double calculate_length() {
     }
     return length;
 }
-void is_open(){
+int is_open(){
+	if( point_count == 1){
+		return 1;
+	}
     double init_x = points[0].x;
     double init_y = points[0].y;
-     for (int i = 1; i < point_count - 1; i++) {
+     for (int i = 1; i < point_count ; i++) {
             if( points[i].x == init_x && points[i].y == init_y){
-                printf("FALSO! polylinea chiusa\n");
-                return;
+                //printf("FALSO! polylinea chiusa\n");
+                return 1;
             }
        }
-      printf("VERO! polylinea aperta\n");
+      //printf("VERO! polylinea aperta\n");
+       return 0;
 
+}
+
+void tell_if_open(){
+        if(is_open() == 0){
+           printf("VERO! polylinea aperta\n");
+        }else{
+            printf("FALSO! polylinea chiusa\n");
+   }
 
 }
 
 void close(){
+	if( point_count == 1){
+		printf("polylinea gia' chiusa\n");
+	}
     double init_x = points[0].x;
     double init_y = points[0].y;
 
@@ -60,7 +75,7 @@ void close(){
 
 %}
 
-%token NUMBER SIM0 SIMX SIMY ISOPEN CLOSE VARIABLE EOL SEMICOLON LPAR RPAR LEN
+%token NUMBER SIM0 SIMX SIMY ISOPEN CLOSE VARIABLE EOL SEMICOLON LPAR RPAR LEN QUIT
 
 %%
 
@@ -71,9 +86,10 @@ commands:
 
 command:
     polyline SEMICOLON { printf("Length: %f\n", calculate_length()); }
-    | isOpen_command SEMICOLON { /* handle isOpen command */ }
-    | close_command SEMICOLON { /* handle close command */ }
-    | LEN SEMICOLON { printf("Length: %f\n", calculate_length()); }
+    | isOpen_command SEMICOLON { /* ... */ }
+    | close_command SEMICOLON { /*...  */ }
+    | LEN { printf("Length: %f\n", calculate_length()); tell_if_open();}
+    | QUIT {exit(0);}
     ;
 
 polyline:
@@ -92,18 +108,18 @@ point:
     ;
 
 sym_point:
-        SIMX '(' point point points ')' { add_point($3, -$4); }
-        | SIMY '(' point point points ')' { add_point(-$3, $4);}
-        | SIM0 '(' point point points ')' { add_point(-$3, -$4); }
+        SIMX '(' point point polyline ')' { add_point($3, -$4); }
+        | SIMY '(' point point polyline ')' { add_point(-$3, $4);}
+        | SIM0 '(' point point polyline ')' { add_point(-$3, -$4); }
         ;
 
 
 isOpen_command:
-    ISOPEN polyline { is_open(); }
+    ISOPEN polyline { tell_if_open(); }
     ;
 
 close_command:
-    CLOSE polyline { close(); }
+    CLOSE polyline { if(is_open() == 0){close(); }else{printf("gia chiuso!\n");}}
     ;
 
 %%
